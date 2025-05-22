@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Recipe Finder</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+
+        .search-box {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr auto;
+            gap: 10px;
+            margin: 30px 0;
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+        }
+
+        input, select {
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        input:focus, select:focus {
+            border-color: #4CAF50;
+            outline: none;
+        }
+
+        button {
+            padding: 12px 25px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.2s ease, background 0.3s ease;
+        }
+
+        button:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+        }
+
+        .recipe-card {
+            background: white;
+            padding: 25px;
+            margin: 20px 0;
+            border-radius: 12px;
+            box-shadow: 0 3px 15px rgba(0,0,0,0.1);
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 25px;
+        }
+
+        .recipe-card img {
+            width: 100%;
+            height: 250px;
+            object-fit: cover;
+            border-radius: 8px;
+        }
+
+        .recipe-info {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .tags {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .tag {
+            background: #e8f5e9;
+            color: #2e7d32;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9em;
+        }
+
+        .ingredients {
+            columns: 2;
+            margin: 15px 0;
+        }
+
+        @media (max-width: 768px) {
+            .search-box {
+                grid-template-columns: 1fr;
+            }
+            
+            .recipe-card {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 style="text-align: center; color: #2c3e50; margin-bottom: 10px;">🌍 Recipe Explorer</h1>
+        <p style="text-align: center; color: #7f8c8d; margin-bottom: 30px;">Discover recipes from around the world</p>
+
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="Search recipes...">
+            <select id="dietSelect">
+                <option value="">All Diets</option>
+                <option value="Vegetarian">Vegetarian</option>
+                <option value="Vegan">Vegan</option>
+                <option value="Pescetarian">Pescetarian</option>
+                <option value="Gluten-Free">Gluten-Free</option>
+            </select>
+            <select id="countrySelect">
+                <option value="">All Countries</option>
+                <!-- Countries will be populated by JavaScript -->
+            </select>
+            <button onclick="searchRecipes()">Search</button>
+        </div>
+
+        <div id="recipeResults"></div>
+    </div>
+
+    <script>
+        // Fetch countries on page load
+        window.onload = async () => {
+            const countrySelect = document.getElementById('countrySelect');
+            try {
+                const response = await fetch('https://www.themealdb.com/api/json/v1/1/list.php?a=list');
+                const data = await response.json();
+                data.meals.forEach(meal => {
+                    const option = document.createElement('option');
+                    option.value = meal.strArea;
+                    option.textContent = meal.strArea;
+                    countrySelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error fetching countries:', error);
+            }
+        };
+
+        async function searchRecipes() {
+            const searchTerm = document.getElementById('searchInput').value;
+            const diet = document.getElementById('dietSelect').value;
+            const country = document.getElementById('countrySelect').value;
+            const resultsContainer = document.getElementById('recipeResults');
+            resultsContainer.innerHTML = '<p style="text-align: center;">Searching recipes...</p>';
+
+            try {
+                let apiUrl = `https://www.themealdb.com/api/json/v1/1/search.php?s=${searchTerm}`;
+                if (country) apiUrl = `https://www.themealdb.com/api/json/v1/1/filter.php?a=${country}`;
+
+                const response = await fetch(apiUrl);
+                const data = await response.json();
+                
+                if (!data.meals) {
+                    resultsContainer.innerHTML = '<p style="text-align: center;">No recipes found. Try different filters!</p>';
+                    return;
+                }
+
+                // Filter results
+                let filteredMeals = data.meals.filter(meal => {
+                    let valid = true;
+                    if (diet === 'Vegetarian') valid = meal.strTags?.includes('Vegetarian');
+                    if (diet === 'Vegan') valid = meal.strTags?.includes('Vegan');
+                    if (diet === 'Gluten-Free') valid = meal.strTags?.includes('Gluten-Free');
+                    if (diet === 'Pescetarian') valid = meal.strTags?.includes('Fish') || meal.strTags?.includes('Seafood');
+                    return valid;
+                });
+
+                if (searchTerm && country) {
+                    filteredMeals = filteredMeals.filter(meal => 
+                        meal.strMeal.toLowerCase().includes(searchTerm.toLowerCase())
+                    );
+                }
+
+                resultsContainer.innerHTML = '';
+                filteredMeals.forEach(meal => {
+                    fetchRecipeDetails(meal.idMeal).then(details => {
+                        const recipeCard = createRecipeCard(details);
+                        resultsContainer.appendChild(recipeCard);
+                    });
+                });
+            } catch (error) {
+                resultsContainer.innerHTML = '<p style="text-align: center; color: red;">Error fetching recipes. Please try again later.</p>';
+            }
+        }
+
+        async function fetchRecipeDetails(mealId) {
+            const response = await fetch(`https://www.themealdb.com/api/json/v1/1/lookup.php?i=${mealId}`);
+            const data = await response.json();
+            return data.meals[0];
+        }
+
+        function createRecipeCard(meal) {
+            const card = document.createElement('div');
+            card.className = 'recipe-card';
+            
+            const ingredients = [];
+            for (let i = 1; i <= 20; i++) {
+                if (meal[`strIngredient${i}`]) {
+                    ingredients.push(
+                        `<li>${meal[`strIngredient${i}`]} - ${meal[`strMeasure${i}`]}</li>`
+                    );
+                }
+            }
+
+            card.innerHTML = `
+                <img src="${meal.strMealThumb}" alt="${meal.strMeal}">
+                <div class="recipe-info">
+                    <h2 style="color: #2c3e50; margin: 0;">${meal.strMeal}</h2>
+                    <div class="tags">
+                        <span class="tag">${meal.strArea}</span>
+                        <span class="tag">${meal.strCategory}</span>
+                        ${meal.strTags ? meal.strTags.split(',').map(tag => 
+                            `<span class="tag">${tag.trim()}</span>`).join('') : ''}
+                    </div>
+                    <div class="ingredients">
+                        <h4 style="color: #4CAF50; margin: 0 0 10px 0;">Ingredients:</h4>
+                        <ul>${ingredients.join('')}</ul>
+                    </div>
+                    <div class="instructions">
+                        <h4 style="color: #4CAF50; margin: 0 0 10px 0;">Instructions:</h4>
+                        <p>${meal.strInstructions}</p>
+                    </div>
+                </div>
+            `;
+
+            return card;
+        }
+    </script>
+</body>
+</html>

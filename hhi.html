@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- Keep existing head content -->
+    <style>
+        /* Add these new styles */
+        .create-recipe-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            padding: 15px 25px;
+            background: #4CAF50;
+            color: white;
+            border-radius: 30px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            z-index: 1000;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .recipe-form input,
+        .recipe-form textarea {
+            width: 100%;
+            margin-bottom: 15px;
+            padding: 10px;
+            border: 1px solid #ddd;
+        }
+    </style>
+</head>
+<body>
+    <!-- Add create recipe button -->
+    <div class="create-recipe-btn" id="createRecipeBtn" onclick="showRecipeForm()">➕ Create Recipe</div>
+
+    <!-- Add modal form -->
+    <div class="modal" id="recipeModal">
+        <div class="modal-content">
+            <h2>Create New Recipe</h2>
+            <form class="recipe-form" onsubmit="return submitRecipe(event)">
+                <input type="text" id="recipeName" placeholder="Recipe name" required>
+                <textarea id="recipeIngredients" placeholder="Ingredients (one per line)" rows="5" required></textarea>
+                <textarea id="recipeInstructions" placeholder="Instructions" rows="5" required></textarea>
+                <input type="text" id="recipeCategory" placeholder="Category (e.g., Dessert)">
+                <input type="text" id="recipeArea" placeholder="Cuisine (e.g., Italian)">
+                <input type="text" id="recipeImage" placeholder="Image URL">
+                <button type="submit">Save Recipe</button>
+                <button type="button" onclick="closeRecipeForm()">Cancel</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Add these new functions
+        function showRecipeForm() {
+            document.getElementById('recipeModal').style.display = 'flex';
+        }
+
+        function closeRecipeForm() {
+            document.getElementById('recipeModal').style.display = 'none';
+        }
+
+        function submitRecipe(event) {
+            event.preventDefault();
+            
+            const newRecipe = {
+                idMeal: Date.now().toString(),
+                strMeal: document.getElementById('recipeName').value,
+                strIngredients: document.getElementById('recipeIngredients').value.split('\n'),
+                strInstructions: document.getElementById('recipeInstructions').value,
+                strCategory: document.getElementById('recipeCategory').value || 'General',
+                strArea: document.getElementById('recipeArea').value || 'International',
+                strMealThumb: document.getElementById('recipeImage').value || 'https://via.placeholder.com/400',
+                strTags: ['User Recipe'],
+                isCustom: true
+            };
+
+            // Save to localStorage
+            const customRecipes = JSON.parse(localStorage.getItem('customRecipes') || '[]');
+            customRecipes.push(newRecipe);
+            localStorage.setItem('customRecipes', JSON.stringify(customRecipes));
+
+            alert('Recipe saved successfully!');
+            closeRecipeForm();
+            searchRecipes(); // Refresh the recipe list
+        }
+
+        // Modified searchRecipes function
+        async function searchRecipes() {
+            // ... existing API call code ...
+
+            // Add custom recipes
+            const customRecipes = JSON.parse(localStorage.getItem('customRecipes') || '[]');
+            const allRecipes = [...(data.meals || []), ...customRecipes];
+
+            // Filtering logic
+            let filteredMeals = allRecipes.filter(meal => {
+                // ... existing filter logic ...
+            });
+
+            // Display results
+            resultsContainer.innerHTML = '';
+            filteredMeals.forEach(meal => {
+                const recipeCard = createRecipeCard(meal);
+                resultsContainer.appendChild(recipeCard);
+            });
+        }
+
+        // Modified createRecipeCard function
+        function createRecipeCard(meal) {
+            // ... existing code ...
+
+            // Add custom recipe badge
+            if (meal.isCustom) {
+                card.innerHTML += `<div class="custom-badge">Your Recipe</div>`;
+            }
+
+            // Handle custom recipe ingredients
+            const ingredients = meal.strIngredients || 
+                Array.from({length: 20}, (_, i) => meal[`strIngredient${i+1}`])
+                    .filter(ing => ing);
+
+            // ... rest of existing code ...
+        }
+
+        // Show/hide create button based on login
+        window.onload = () => {
+            const user = JSON.parse(localStorage.getItem('currentUser'));
+            document.getElementById('createRecipeBtn').style.display = user ? 'block' : 'none';
+            // ... existing onload code ...
+        };
+    </script>
+</body>
+</html>
